@@ -56,12 +56,32 @@ def ewma(data: np.ndarray, window: int, alpha: Optional[float] = None) -> np.nda
 def find_anomaly_points(data: np.ndarray, offset: int = 500, threshold: float = None) -> List[int]:
     assert offset >= 1
 
-    threshold = threshold or (data.std() * 2)
+    threshold = threshold or (data.mean() + data.std() * 3)
     anomaly_points = []
 
     i = 0
     while i <= len(data) - 1:
         if data[i] >= threshold:
+            anomaly_points.append(i)
+            i += offset
+        else:
+            i += 1
+
+    return anomaly_points
+
+
+def find_anomaly_points_by_median(data: np.array, offset: int = 500, threshold: int = 10) -> List[int]:
+    """https://stackoverflow.com/a/45399188"""
+    assert offset >= 1
+
+    distances = np.abs(data - np.median(data))
+    mdev = np.median(distances)
+
+    anomaly_points = []
+
+    i = 0
+    while i <= len(data) - 1:
+        if (distances[i] / (mdev or 1.)) >= threshold:
             anomaly_points.append(i)
             i += offset
         else:

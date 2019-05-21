@@ -1,0 +1,62 @@
+default:
+  rules: 0.55
+
+  bfk: 0.2
+  bpop: 0.4
+  bud: 6.
+  bud_board: 15.
+  fp: 0.7
+  mi: 0.4
+  mk: 0.09
+  ppt: 0.27
+  ppt_direction: 0.1
+  str: 0.05
+
+  PptRiple: 100
+  PptSampleCount: 100
+  ScannerAngle: 610
+  Str27V: 210
+  StrSensorTu1: 100
+  StrSensorTu2: 100
+
+
+METM2_9181_9174_1VIE2-IMR_8_IKFS-2_01P8:
+  mi: 0.9
+  mk: 0.19
+  fp: 1.
+  ppt_direction: 0.015
+
+
+METM2_21946_21938_1VIE2-IMR_15_IKFS-2_01P8:
+  bpop: 0.2
+  bud: 5.
+  mi: 1.
+  mk: 2.
+  ppt: 0.16
+  ppt_direction: 0.01
+
+
+METM2_22783_22776_1VIE2-IMR_8_IKFS-2_01P8:
+  bpop: 0.2
+  mk: 0.12
+  ppt: 2.5
+
+
+METM2_22790_22783_1VIE2-IMR_8_IKFS-2_01P8:
+  bud: 5.
+  mi: 0.7
+  mk: 0.55
+  ppt: 1.5
+  str: 0.045
+
+  ScannerAngle: 410
+
+
+METM2_23380_23372_1VIE2-IMR_8_IKFS-2_01P8:
+  bpop: 0.3
+  bud: 5.
+  fp: 0.68
+  mi: 1.5
+  mk: 1.5
+  ppt: 0.15
+  ppt_direction: 0.006

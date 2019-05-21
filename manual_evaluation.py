@@ -10,7 +10,8 @@ from core.reader import TelemetryReader
 from core.utils import fill_zeros_with_previous
 from intellectual.predictor import LSTMPredictor, SIGNALS_FOR_TRAINING
 
-GOOD_FILE = '/Users/anthony/Desktop/best_diploma/data/good/METM2_22293_22286_1VIE2-IMR_8_IKFS-2_01P8.rsm.tlm.h5'
+# GOOD_FILE = '/Users/anthony/Desktop/best_diploma/data/good/METM2_22293_22286_1VIE2-IMR_8_IKFS-2_01P8.rsm.tlm.h5'
+GOOD_FILE = '/home/anton/ikfs_anomaly/data/good/METM2_22293_22286_1VIE2-IMR_8_IKFS-2_01P8.rsm.tlm.h5'
 
 
 def _change_ppt_ripple(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -132,24 +133,24 @@ def calculate_scores() -> None:
         predicted_labels_p[predicted_labels_p == 1.] *= signal_data.max()
         predicted_labels_p[predicted_labels_p == 0.] += signal_data.min()
 
-        plot_telemetry(
-            Subplot(
-                signals=[
-                    Signal(signal_name, signal_data, color=Colours.black),
-                    Signal('Разметка аномалий', labels_for_plot, color=Colours.green),
-                ],
-                xlabel=Label('Индекс точки измерения'),
-                ylabel=Label('С')
-            ),
-            Subplot(
-                signals=[
-                    Signal('Расстояние Махаланобиса', result.mahalanobis_distance, color=Colours.red),
-                    Signal('Граница аномалии', np.array([threshold] * len(signal_data)), color=Colours.green),
-                ],
-                ylim=(0, 1000),
-                xlabel=Label('Индекс точки измерения')
-            ),
-        )
+        # plot_telemetry(
+        #     Subplot(
+        #         signals=[
+        #             Signal(signal_name, signal_data, color=Colours.black),
+        #             Signal('Разметка аномалий', labels_for_plot, color=Colours.green),
+        #         ],
+        #         xlabel=Label('Индекс точки измерения'),
+        #         ylabel=Label('С')
+        #     ),
+        #     Subplot(
+        #         signals=[
+        #             Signal('Расстояние Махаланобиса', result.mahalanobis_distance, color=Colours.red),
+        #             Signal('Граница аномалии', np.array([threshold] * len(signal_data)), color=Colours.green),
+        #         ],
+        #         ylim=(0, 1000),
+        #         xlabel=Label('Индекс точки измерения')
+        #     ),
+        # )
 
         roc = metrics.roc_curve(labels, m_dist)
         roc_curves[signal_name] = roc
@@ -158,12 +159,14 @@ def calculate_scores() -> None:
         print(len(predicted_labels))
         print(f'\nClassification report for {signal_name}: \n', metrics.classification_report(labels, predicted_labels))
 
+    plt.figure(figsize=(10, 10))
+
     for signal, roc in roc_curves.items():
         fpr, tpr, _ = roc
-        plt.plot(fpr, tpr, label='Predictor ' + signal)
+        plt.plot(fpr, tpr, label=f'LSTM-предиктор для "{signal}"')
 
     perfect = np.linspace(0, 1, num=len(list(roc_curves.values())[0]))
-    plt.plot(perfect, perfect, 'y--', linewidth=0.5)
+    plt.plot(perfect, perfect, 'y--', linewidth=0.5, color='yellow')
     plt.legend(loc=4)
 
     plt.show()

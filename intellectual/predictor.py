@@ -22,8 +22,8 @@ SIGNALS_FOR_TRAINING = (
     TelemetryAttrs.ppt_sample_count,
     TelemetryAttrs.scanner_angle,
     TelemetryAttrs.str_power,
-    # TelemetryAttrs.tu1_temperature,
-    # TelemetryAttrs.tu2_temperature,
+    TelemetryAttrs.tu1_temperature,
+    TelemetryAttrs.tu2_temperature,
 )
 
 

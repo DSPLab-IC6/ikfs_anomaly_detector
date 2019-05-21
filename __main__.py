@@ -1,9 +1,10 @@
 import os
 
 import numpy as np
+import yaml
 
 from core.format.telemetry import TelemetryAttrs
-from core.printer import plot_telemetry, Subplot, Label, Signal, Colours
+from core.printer import plot_telemetry, Subplot, Label, Signal, Colours, Ticks
 from core.reader import TelemetryReader
 from expert.analyzer import ExpertAnalyzer
 from intellectual import signal_groups
@@ -12,27 +13,54 @@ from intellectual.predictor import LSTMPredictor, SIGNALS_FOR_TRAINING
 from intellectual.utils import find_anomaly_points
 
 KIND = 'bad'
-THRESHOLDS = {
-    'rules': 0.55,
+PRINT_ERRORS_ONLY = False
 
-    TelemetryAttrs.ppt_ripple: 100,
-    TelemetryAttrs.ppt_sample_count: 100,
-    TelemetryAttrs.scanner_angle: 420,
-    TelemetryAttrs.str_power: 200,
 
-    signal_groups.BFK_GROUP: 0.225,
-    signal_groups.BPOP_GROUP: 0.1,
-    signal_groups.BUD_BOARD_GROUP: 15.5,
-    signal_groups.BUD_GROUP: 3.5,
-    signal_groups.FP_GROUP: 0.1,
-    signal_groups.MI_GROUP: 0.1,
-    signal_groups.MK_GROUP: 0.55,
-    signal_groups.PPT_DIRECTION_GROUP: 0.1,
-    signal_groups.PPT_GROUP: 1,
-    signal_groups.STR_GROUP: 0.04,
-}
+def load_thresholds() -> dict:
+    with open('thresholds.yml', 'r') as stream:
+        try:
+            thresholds = yaml.safe_load(stream)
+            assert 'default' in thresholds, 'В конфигурации границ не найдена секция "default"'
+            return thresholds
+
+        except yaml.YAMLError as exc:
+            print('Ошибка при загрузке файла конфигурации: ' + str(exc))
+
+
+THRESHOLDS = load_thresholds()
+
+
+def get_threshold(fname: str, signal_name: str) -> float:
+    try:
+        return THRESHOLDS.get(fname, {}).get(signal_name, THRESHOLDS['default'][signal_name])
+    except KeyError:
+        print(f'Для сигнала "{signal_name}" не определена аномальная граница')
+
 
 ANOMALIES_POINTS = {}
+
+
+def _roll_up_points(data: list) -> list:
+    result = []
+
+    i = 0
+    while i < len(data):
+        k = i
+        start = data[k]
+        end = None
+        while (k + 1 < len(data)) and (data[k + 1] - data[k] == 1):
+            end = data[k + 1]
+            k += 1
+            i += 1
+
+        if end is None:
+            result.append(start)
+        else:
+            result.append((start, end))
+
+        i += 1
+
+    return result
 
 
 def _expert_analysis(reader: TelemetryReader, fname: str) -> None:
@@ -44,7 +72,8 @@ def _expert_analysis(reader: TelemetryReader, fname: str) -> None:
             Subplot(
                 signals=[
                     Signal(result.tester, np.array(result.error_rate)),
-                    Signal('Граница аномалии', np.array([THRESHOLDS['rules']] * len(result.error_rate)), color=Colours.red),
+                    Signal('Граница аномалии', np.array([get_threshold('', 'rules')] * len(result.error_rate)),
+                           color=Colours.red),
                 ],
                 xlabel=Label('Точка телеметрии'),
                 ylabel=Label('Показатель ошибки'),
@@ -67,11 +96,11 @@ def _run_predictor(reader: TelemetryReader, fname: str) -> None:
             print('err for ', signal)
             continue
 
-        threshold = THRESHOLDS[signal]
+        threshold = get_threshold(fname, signal)
         anomaly_points = find_anomaly_points(result.mahalanobis_distance, offset=1, threshold=threshold)
-        ANOMALIES_POINTS[signal] = anomaly_points
+        ANOMALIES_POINTS[f'predicted__{signal}'] = anomaly_points
 
-        plot_telemetry(
+        subplots = [] if PRINT_ERRORS_ONLY else [
             Subplot(
                 signals=[
                     Signal(signal, result.data, color=Colours.blue, alpha=.5),
@@ -79,6 +108,8 @@ def _run_predictor(reader: TelemetryReader, fname: str) -> None:
                 ],
                 xlabel=Label('Индекс точки измерения'),
             ),
+        ]
+        subplots.append(
             Subplot(
                 signals=[
                     Signal(f'Расстояние Махаланобиса', result.mahalanobis_distance, color=Colours.red),
@@ -87,9 +118,39 @@ def _run_predictor(reader: TelemetryReader, fname: str) -> None:
                 xlabel=Label('Индекс точки измерения'),
                 ylim=(0, 1000),
             ),
+        )
+
+        plot_telemetry(
+            *subplots,
             img_path=f'results/{KIND}/{fname}/predicted__{signal}.png',
             anomaly_points=anomaly_points,
         )
+
+        if signal == TelemetryAttrs.scanner_angle and anomaly_points:
+            for anomaly in _roll_up_points(anomaly_points):
+                data = reader.get_signal(TelemetryAttrs.scanner_angle)
+
+                if isinstance(anomaly, tuple):
+                    data = data[anomaly[0] - 250: anomaly[1] + 250]
+                    ticks = Ticks(start=anomaly[0] - 250, period=50)
+                    path = f'results/{KIND}/{fname}/predicted__{signal}__{anomaly[0]}_{anomaly[1]}.png'
+                    selections = range(250, 250 + anomaly[1] - anomaly[0])
+                else:
+                    data = data[anomaly - 250: anomaly + 250]
+                    ticks = Ticks(start=anomaly - 250, period=50)
+                    path = f'results/{KIND}/{fname}/predicted__{signal}__{anomaly}.png'
+                    selections = [250]
+
+                plot_telemetry(
+                    Subplot(
+                        signals=[Signal(TelemetryAttrs.scanner_angle, data)],
+                        xlabel=Label('Индекс точки измерения'),
+                        ticks=ticks,
+                    ),
+                    img_path=path,
+                    anomaly_points=selections,
+                    anomaly_selection_width=10,
+                )
 
 
 def _run_autoencoder(reader: TelemetryReader, fname: str) -> None:
@@ -106,45 +167,49 @@ def _run_autoencoder(reader: TelemetryReader, fname: str) -> None:
 
         signals = list(group.signals_data.keys())
 
-        subplots = [
-            Subplot(
-                signals=[
-                    Signal(signals[i], data, color=Colours.black),
-                    Signal(f'{signals[i]}__decoded', decoded, color=Colours.green),
-                ],
-                xlabel=Label('Индекс точки измерения'),
-            )
-            for i, (data, decoded) in enumerate(zip(result.signals, result.decoded_signals))
-        ]
-
-        threshold = THRESHOLDS[group_name]
+        threshold = get_threshold(fname, group_name)
         anomaly_points = find_anomaly_points(result.ewma_mse, offset=1, threshold=threshold)
-        ANOMALIES_POINTS[group_name] = anomaly_points
+        ANOMALIES_POINTS[f'group__{group_name}'] = anomaly_points
 
-        subplots.append(Subplot(
+        subplots = [Subplot(
             signals=[
                 Signal('EWMA MSE', result.ewma_mse, color=Colours.red),
                 Signal('Граница аномалии', np.array([threshold] * len(result.ewma_mse)), color=Colours.green),
             ],
             xlabel=Label('Индекс точки измерения'),
             ylabel=Label(''),
-        ))
+        )]
+
+        if not PRINT_ERRORS_ONLY:
+            subplots.extend([
+                Subplot(
+                    signals=[
+                        Signal(signals[i], data, color=Colours.black),
+                        Signal(f'{signals[i]}__decoded', decoded, color=Colours.green),
+                    ],
+                    xlabel=Label('Индекс точки измерения'),
+                )
+                for i, (data, decoded) in enumerate(zip(result.signals, result.decoded_signals))
+            ])
 
         plot_telemetry(
             *subplots,
-            # anomaly_points=anomaly_points[::100],
             img_path=f'results/{KIND}/{fname}/group__{group_name}.png',
         )
 
 
 def main() -> None:
-    path = f'/Users/anthony/Desktop/best_diploma/data/{KIND}/'
+    # path = f'/Users/anthony/Desktop/best_diploma/data/{KIND}/'
+    path = f'/home/anton/ikfs_anomaly/data/{KIND}/'
 
     for file_name in os.listdir(path):
         if not file_name.endswith('.h5'):
             continue
 
         fname = file_name.split(".")[0]
+        if os.path.exists(f'results/{KIND}/{fname}'):
+            continue
+
         os.mkdir(f'results/{KIND}/{fname}')
 
         print(f'\nProcess "{file_name}"')
@@ -155,35 +220,40 @@ def main() -> None:
             _run_predictor(reader, fname)
             _run_autoencoder(reader, fname)
 
-        # Напечатать кусочек
-        # plot_telemetry(*[
-        #     Subplot(
-        #         signals=[
-        #             Signal('ScannerAngle', reader.get_signal(TelemetryAttrs.scanner_angle)[16500:17000]),
-        #         ],
-        #         xlabel=Label('Points'),
-        #         ylabel=Label(''),
-        #         ticks=Ticks(start=16500, period=25),
-        #     )
-        # ])
-
+        print('Печать выходного файла...')
         anomalies_counter = [0] * 100_000
 
         with open(f'results/{KIND}/{fname}/anomalies.txt', 'w') as f:
-            f.write('Аномальные точки:\n')
+            f.write('Аномальные участки:\n')
 
             for signal, points in ANOMALIES_POINTS.items():
-                pts = '\t\n'.join(map(str, points))
-                f.write(f"{signal}:\n\t{pts}\n")
+                if not points:
+                    continue
 
                 for i in points:
                     anomalies_counter[i] += 1
 
-            pts = '\t\n'.join(map(str, [i for i, cnt in enumerate(anomalies_counter) if cnt > 2]))
-            f.write(f'Аномальные точки, «угаданные» больше 3-х раз:\n\t{pts}\n')
+                f.write(f'- {signal}\n')
+                for p in _roll_up_points(points):
+                    if isinstance(p, tuple):
+                        f.write(f'\t{p[0]} - {p[1]}\n')
+                    else:
+                        f.write(f'\t{p}\n')
 
-        return
+            for min_cnt in range(2, 5 + 1):
+                anomaly_points = _roll_up_points([i for i, cnt in enumerate(anomalies_counter) if cnt > min_cnt])
+
+                f.write(f'\nАномальные участки, встречающиеся среди анализаторов более {min_cnt} раз:\n')
+                if anomaly_points:
+                    for p in anomaly_points:
+                        if isinstance(p, tuple):
+                            f.write(f'\t{p[0]} - {p[1]}\n')
+                        else:
+                            f.write(f'\t{p}\n')
+                else:
+                    f.write('отсутствуют.\n')
 
 
 if __name__ == '__main__':
+    # PRINT_ERRORS_ONLY = True
     main()

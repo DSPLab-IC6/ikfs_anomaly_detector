@@ -1,5 +1,7 @@
 *.pyc
 __pycache__/
+.idea/
+__test__.py
 
 data/
 images/

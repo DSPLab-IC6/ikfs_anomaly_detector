@@ -79,6 +79,7 @@ def plot_telemetry(
         height: int = 10,  # inches
         img_path: str = '',
         anomaly_points: Optional[AnomalyPoints] = None,
+        anomaly_selection_width: int = 2000,
 ) -> None:
     anomaly_points = anomaly_points or []
 
@@ -87,10 +88,11 @@ def plot_telemetry(
     fig, axes = plt.subplots(nrows=len(subplots), figsize=(width, height * len(subplots)))
     if len(subplots) == 1:
         _plot_subplot(axes, subplots[0])
+        _plot_anomalies(axes, anomaly_points, selection_width=anomaly_selection_width)
     else:
         for i, plot in enumerate(subplots):
             _plot_subplot(axes[i], plot)
-            _plot_anomalies(axes[i], anomaly_points)
+            _plot_anomalies(axes[i], anomaly_points, selection_width=anomaly_selection_width)
 
     if img_path:
         plt.savefig(img_path, bbox_inches='tight')
