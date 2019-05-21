@@ -1,0 +1,8 @@
+h5py==2.9.0
+keras==2.2.4
+matplotlib==3.0.3
+pydot==1.4.1
+pytest==4.5.0
+pytest-cov==2.7.1
+sklearn==0.0
+tensorflow==1.13.1

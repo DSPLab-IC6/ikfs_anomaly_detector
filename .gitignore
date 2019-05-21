@@ -1,0 +1,13 @@
+*.pyc
+__pycache__/
+
+data/
+images/
+htmlcov*/
+results/
+tensorboard/
+venv/
+
+.pytest*
+.coverage*
+coverage.html
