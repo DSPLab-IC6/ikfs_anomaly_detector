@@ -5,7 +5,6 @@ import numpy as np
 from sklearn import metrics
 
 from core.format.telemetry import TelemetryAttrs
-from core.printer import plot_telemetry, Subplot, Signal, Label, Colours
 from core.reader import TelemetryReader
 from core.utils import fill_zeros_with_previous
 from intellectual.predictor import LSTMPredictor, SIGNALS_FOR_TRAINING
@@ -42,8 +41,8 @@ def _change_ppt_sample_count(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         data[index] = 25870
         labels[index] = 1.
 
-    index = np.random.randint(0, 60_000)
-    for i in range(index, index + np.random.randint(10000)):
+    index = np.random.randint(0, 40_000)
+    for i in range(index, index + np.random.randint(10_000)):
         data[i] = 25870 + np.random.normal(-5, 5)
         labels[i] = 1.
 
@@ -53,7 +52,7 @@ def _change_ppt_sample_count(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
 def _change_scanner_angle(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     print('Вставляем аномалии...')
 
-    data = data[15000:]
+    data = data[15_000:]
 
     labels = np.array([0.] * len(data))
 
@@ -75,17 +74,31 @@ def _change_str_power(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         data[i] = data.mean() + 2.
         labels[i] = 1.
 
-    for i in range(10000, 10100):
+    for i in range(10_000, 10_100):
         data[i] = data.mean() - 2.
         labels[i] = 1.
 
-    for i in range(30200, 30700):
+    for i in range(30_200, 30_700):
         data[i] += np.random.normal(-0.2, 0.2)
         labels[i] = 1.
 
-    for i in range(37500, 40000):
+    for i in range(37_500, 40_000):
         data[i] = 29. + np.random.normal(-0.2, 0.2)
         labels[i] = 1.
+
+    return labels, data
+
+
+def _change_tu_temperature(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    print('Вставляем аномалии...')
+
+    labels = np.array([0.] * len(data))
+
+    for j in range(10):
+        start = np.random.randint(30_000)
+        for i in range(start, start + 300):
+            data[i] += np.random.normal(-0.05, 0.05)
+            labels[i] = 1.
 
     return labels, data
 
@@ -95,18 +108,23 @@ CHANGES_FUNCS = {
     TelemetryAttrs.ppt_sample_count: _change_ppt_sample_count,
     TelemetryAttrs.scanner_angle: _change_scanner_angle,
     TelemetryAttrs.str_power: _change_str_power,
+    TelemetryAttrs.tu1_temperature: _change_tu_temperature,
+    TelemetryAttrs.tu2_temperature: _change_tu_temperature,
 }
 
 THRESHOLD = {
-    TelemetryAttrs.ppt_ripple: 40,
-    TelemetryAttrs.ppt_sample_count: 100,
-    TelemetryAttrs.scanner_angle: 300,
-    TelemetryAttrs.str_power: 50,
+    TelemetryAttrs.ppt_ripple: 10,
+    TelemetryAttrs.ppt_sample_count: 10,
+    TelemetryAttrs.scanner_angle: 100,
+    TelemetryAttrs.str_power: 20,
+    TelemetryAttrs.tu1_temperature: 100,
+    TelemetryAttrs.tu2_temperature: 100,
 }
 
 
-def calculate_scores() -> None:
+def calculate_scores_for_predictions() -> None:
     roc_curves = {}
+    pr_curves = {}
 
     print('Читаем сигналы...')
     with TelemetryReader(GOOD_FILE) as reader:
@@ -155,22 +173,34 @@ def calculate_scores() -> None:
         roc = metrics.roc_curve(labels, m_dist)
         roc_curves[signal_name] = roc
 
-        print(len(labels))
-        print(len(predicted_labels))
         print(f'\nClassification report for {signal_name}: \n', metrics.classification_report(labels, predicted_labels))
 
-    plt.figure(figsize=(10, 10))
+        pr_curve = metrics.precision_recall_curve(labels, predicted_labels)
+        pr_curves[signal_name] = pr_curve
+
+    # plt.figure(figsize=(10, 10))
 
     for signal, roc in roc_curves.items():
         fpr, tpr, _ = roc
         plt.plot(fpr, tpr, label=f'LSTM-предиктор для "{signal}"')
 
     perfect = np.linspace(0, 1, num=len(list(roc_curves.values())[0]))
-    plt.plot(perfect, perfect, 'y--', linewidth=0.5, color='yellow')
+    plt.plot(perfect, perfect, 'y--', linewidth=0.5, color='black')
     plt.legend(loc=4)
 
     plt.show()
 
+    for signal, pr in pr_curves.items():
+        precision, recall, _ = pr
+        plt.step(recall, precision, label=f'LSTM-предиктор для "{signal}"', where='post')
+
+    plt.legend(loc=4)
+    plt.show()
+
+
+def calculate_scores_for_decoders() -> None:
+    pass
+
 
 if __name__ == '__main__':
-    calculate_scores()
+    def calculate_scores_for_predictions() -> None: ()
