@@ -93,6 +93,14 @@ SIGNALS_GROUPS = {
         ]
     ),
 
+    FP_GROUP: SignalsGroup(
+        name='Фотоприёмник',
+        signals=[
+            TelemetryAttrs.tu2_temperature,
+            TelemetryAttrs.fp_temperature,
+        ],
+    ),
+
     MI_GROUP: SignalsGroup(
         name='Модуль_интерферометра',
         signals=[
@@ -112,22 +120,6 @@ SIGNALS_GROUPS = {
         ]
     ),
 
-    FP_GROUP: SignalsGroup(
-        name='Фотоприёмник',
-        signals=[
-            TelemetryAttrs.tu2_temperature,
-            TelemetryAttrs.fp_temperature,
-        ],
-    ),
-
-    STR_GROUP: SignalsGroup(
-        name='Система_терморегулирования',
-        signals=[
-            TelemetryAttrs.str_power,
-            TelemetryAttrs.tu1_temperature,
-        ]
-    ),
-
     PPT_GROUP: SignalsGroup(
         name='Привод_перемещения_триэдров',
         signals=[
@@ -144,6 +136,14 @@ SIGNALS_GROUPS = {
         signals=[
             TelemetryAttrs.ppt_direction,
             TelemetryAttrs.ifg_max_index,
+        ]
+    ),
+
+    STR_GROUP: SignalsGroup(
+        name='Система_терморегулирования',
+        signals=[
+            TelemetryAttrs.str_power,
+            TelemetryAttrs.tu1_temperature,
         ]
     ),
 }
