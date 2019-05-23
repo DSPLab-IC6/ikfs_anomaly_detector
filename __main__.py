@@ -171,7 +171,8 @@ def main() -> None:
     analyze_parser.set_defaults(func=analyze)
 
     args = parser.parse_args()
-    args.func(args)
+    if getattr(args, 'func', None):
+        args.func(args)
 
     parser.print_help()
 

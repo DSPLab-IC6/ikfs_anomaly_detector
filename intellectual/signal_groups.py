@@ -14,7 +14,7 @@ PPT_DIRECTION_GROUP = 'ppt_direction'
 
 SIGNALS_GROUPS = {
     BFK_GROUP: SignalsGroup(
-        name='Блок_формирования_команд',
+        name=BFK_GROUP,
         signals=[
             # TelemetryAttrs.channel_bfk,
             # TelemetryAttrs.state_bfk,
@@ -32,7 +32,7 @@ SIGNALS_GROUPS = {
     ),
 
     BPOP_GROUP: SignalsGroup(
-        name='Блок_предварительной_обработки_и_преобразования',
+        name=BPOP_GROUP,
         signals=[
             # TelemetryAttrs.channel_bpop,
             # TelemetryAttrs.power_bpop15v,
@@ -49,7 +49,7 @@ SIGNALS_GROUPS = {
     ),
 
     BUD_GROUP: SignalsGroup(
-        name='Блок_управления_двигателем',
+        name=BUD_GROUP,
         signals=[
             # TelemetryAttrs.channel_bud,
             # TelemetryAttrs.power_bud10v,
@@ -72,7 +72,7 @@ SIGNALS_GROUPS = {
     ),
 
     BUD_BOARD_GROUP: SignalsGroup(
-        name='Плата_БУД',
+        name=BUD_BOARD_GROUP,
         signals=[
             TelemetryAttrs.power_bpop15v,
             TelemetryAttrs.power_bpop5v,
@@ -83,7 +83,7 @@ SIGNALS_GROUPS = {
     ),
 
     FP_GROUP: SignalsGroup(
-        name='Фотоприёмник',
+        name=FP_GROUP,
         signals=[
             TelemetryAttrs.tu2_temperature,
             TelemetryAttrs.fp_temperature,
@@ -91,7 +91,7 @@ SIGNALS_GROUPS = {
     ),
 
     MI_GROUP: SignalsGroup(
-        name='Модуль_интерферометра',
+        name=MI_GROUP,
         signals=[
             TelemetryAttrs.mi1_temperature,
             TelemetryAttrs.mi2_temperature,
@@ -101,7 +101,7 @@ SIGNALS_GROUPS = {
     ),
 
     MK_GROUP: SignalsGroup(
-        name='Модуль_калибровки',
+        name=MK_GROUP,
         signals=[
             TelemetryAttrs.mk1_temperature,
             TelemetryAttrs.mk2_temperature,
@@ -110,7 +110,7 @@ SIGNALS_GROUPS = {
     ),
 
     PPT_GROUP: SignalsGroup(
-        name='Привод_перемещения_триэдров',
+        name=PPT_GROUP,
         signals=[
             TelemetryAttrs.ppt_zone,
             TelemetryAttrs.ppt_ref,
@@ -121,7 +121,7 @@ SIGNALS_GROUPS = {
     ),
 
     PPT_DIRECTION_GROUP: SignalsGroup(
-        name='Качалка',
+        name=PPT_DIRECTION_GROUP,
         signals=[
             TelemetryAttrs.ppt_direction,
             TelemetryAttrs.ifg_max_index,
@@ -129,7 +129,7 @@ SIGNALS_GROUPS = {
     ),
 
     STR_GROUP: SignalsGroup(
-        name='Система_терморегулирования',
+        name=STR_GROUP,
         signals=[
             TelemetryAttrs.str_power,
             TelemetryAttrs.tu1_temperature,
