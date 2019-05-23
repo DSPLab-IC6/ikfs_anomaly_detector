@@ -1,259 +1,180 @@
+import gettext
+from core.translation import translate
+
+gettext.gettext = translate
+
+import argparse
 import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-import numpy as np
-import yaml
+import logging
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
-from core.format.telemetry import TelemetryAttrs
-from core.printer import plot_telemetry, Subplot, Label, Signal, Colours, Ticks
+from core.config import dump_default_config, load_config
 from core.reader import TelemetryReader
-from expert.analyzer import ExpertAnalyzer
-from intellectual import signal_groups
-from intellectual.autoencoder import LSTMAutoencoder
-from intellectual.predictor import LSTMPredictor, SIGNALS_FOR_TRAINING
-from intellectual.utils import find_anomaly_points
-
-KIND = 'bad'
-PRINT_ERRORS_ONLY = False
+from core.utils import write_rolluped_points, roll_up_points
+from expert.analysis import run_expert_analyzer
+from intellectual.analysis import run_predictor, run_autoencoder
 
 
-def load_thresholds() -> dict:
-    with open('thresholds.yml', 'r') as stream:
-        try:
-            thresholds = yaml.safe_load(stream)
-            assert 'default' in thresholds, 'В конфигурации границ не найдена секция "default"'
-            return thresholds
-
-        except yaml.YAMLError as exc:
-            print('Ошибка при загрузке файла конфигурации: ' + str(exc))
+def dump_config(args: argparse.Namespace) -> None:
+    path = dump_default_config()
+    print(f'Конфигурационный файл сохранен в "{path}"')
+    exit(0)
 
 
-THRESHOLDS = load_thresholds()
+def train(args: argparse.Namespace) -> None:
+    from intellectual.training import train_autoencoder, train_predictor
 
+    config = load_config(args.config)
+    if not config.models_dir:
+        raise SystemExit('Директория для сохранения моделей "models_dir" не определена')
 
-def get_threshold(fname: str, signal_name: str) -> float:
-    try:
-        return THRESHOLDS.get(fname, {}).get(signal_name, THRESHOLDS['default'][signal_name])
-    except KeyError:
-        print(f'Для сигнала "{signal_name}" не определена аномальная граница')
-
-
-ANOMALIES_POINTS = {}
-
-
-def _roll_up_points(data: list) -> list:
-    result = []
-
-    i = 0
-    while i < len(data):
-        k = i
-        start = data[k]
-        end = None
-        while (k + 1 < len(data)) and (data[k + 1] - data[k] == 1):
-            end = data[k + 1]
-            k += 1
-            i += 1
-
-        if end is None:
-            result.append(start)
-        else:
-            result.append((start, end))
-
-        i += 1
-
-    return result
-
-
-def _expert_analysis(reader: TelemetryReader, fname: str) -> None:
-    expert = ExpertAnalyzer(reader)
-    results = expert.analyze()
-
-    plot_telemetry(
-        *[
-            Subplot(
-                signals=[
-                    Signal(result.tester, np.array(result.error_rate)),
-                    Signal('Граница аномалии', np.array([get_threshold('', 'rules')] * len(result.error_rate)),
-                           color=Colours.red),
-                ],
-                xlabel=Label('Точка телеметрии'),
-                ylabel=Label('Показатель ошибки'),
-            )
-            for result in results
-        ],
-        img_path=f'results/{KIND}/{fname}/rules.png',
+    train_predictor(
+        signals=config.signals_for_predictor,
+        telemetry_dir=args.telemetry_dir,
+        models_dir=config.models_dir,
+        tensorboard_dir=config.tensorboard_dir,
     )
 
+    print('\n' + '*' * 100 + '\n')
 
-def _run_predictor(reader: TelemetryReader, fname: str) -> None:
-    predictor = LSTMPredictor()
+    train_autoencoder(
+        signal_groups=config.signals_groups,
+        telemetry_dir=args.telemetry_dir,
+        models_dir=config.models_dir,
+        tensorboard_dir=config.tensorboard_dir,
+    )
+    exit(0)
 
-    for signal in SIGNALS_FOR_TRAINING:
-        print(f'Анализ предиктором сигнала "{signal}"...')
 
-        try:
-            result = predictor.analyze(reader.get_signals(signal))
-        except Exception:
-            print('err for ', signal)
-            continue
+def analyze(args: argparse.Namespace) -> None:
+    config = load_config(args.config)
+    if not config.models_dir:
+        print('Используются системные (обученные заранее) модели')
 
-        threshold = get_threshold(fname, signal)
-        anomaly_points = find_anomaly_points(result.mahalanobis_distance, offset=1, threshold=threshold)
-        ANOMALIES_POINTS[f'predicted__{signal}'] = anomaly_points
+    if not config.analysis_result_dir:
+        raise SystemExit('Директория для вывода результатов "analysis_result_dir" не определена')
 
-        subplots = [] if PRINT_ERRORS_ONLY else [
-            Subplot(
-                signals=[
-                    Signal(signal, result.data, color=Colours.blue, alpha=.5),
-                    Signal(f'{signal}__predicted', result.predicted_data, color=Colours.green, alpha=.5)
-                ],
-                xlabel=Label('Индекс точки измерения'),
-            ),
-        ]
-        subplots.append(
-            Subplot(
-                signals=[
-                    Signal(f'Расстояние Махаланобиса', result.mahalanobis_distance, color=Colours.red),
-                    Signal('Граница аномалии', np.array([threshold] * len(result.data)), color=Colours.green),
-                ],
-                xlabel=Label('Индекс точки измерения'),
-                ylim=(0, 1000),
-            ),
+    fname = os.path.basename(args.telemetry_file).split('.')[0]
+    thresholds = {}
+    for k, v in config.thresholds['default'].items():
+        thresholds[k] = config.thresholds.get(fname, {}).get(k, v)
+
+    results_path = os.path.join(config.analysis_result_dir, fname)
+    os.makedirs(results_path, exist_ok=True)
+
+    anomalies_points = {}
+
+    with TelemetryReader(args.telemetry_file) as reader:
+        print('\n' + '*' * 100 + '\n')
+
+        run_expert_analyzer(
+            reader=reader,
+            threshold=thresholds['rules'],
+            results_path=results_path,
         )
+        print('\n' + '*' * 100 + '\n')
 
-        plot_telemetry(
-            *subplots,
-            img_path=f'results/{KIND}/{fname}/predicted__{signal}.png',
-            anomaly_points=anomaly_points,
+        run_predictor(
+            reader=reader,
+            models_dir=config.models_dir,
+            signals=config.signals_for_predictor,
+            thresholds=thresholds,
+            results_path=results_path,
+            anomalies_points_storage=anomalies_points,
+            full_report=args.full_report,
         )
+        print('\n' + '*' * 100 + '\n')
 
-        if signal == TelemetryAttrs.scanner_angle and anomaly_points:
-            for anomaly in _roll_up_points(anomaly_points):
-                data = reader.get_signal(TelemetryAttrs.scanner_angle)
-
-                if isinstance(anomaly, tuple):
-                    data = data[anomaly[0] - 250: anomaly[1] + 250]
-                    ticks = Ticks(start=anomaly[0] - 250, period=50)
-                    path = f'results/{KIND}/{fname}/predicted__{signal}__{anomaly[0]}_{anomaly[1]}.png'
-                    selections = range(250, 250 + anomaly[1] - anomaly[0])
-                else:
-                    data = data[anomaly - 250: anomaly + 250]
-                    ticks = Ticks(start=anomaly - 250, period=50)
-                    path = f'results/{KIND}/{fname}/predicted__{signal}__{anomaly}.png'
-                    selections = [250]
-
-                plot_telemetry(
-                    Subplot(
-                        signals=[Signal(TelemetryAttrs.scanner_angle, data)],
-                        xlabel=Label('Индекс точки измерения'),
-                        ticks=ticks,
-                    ),
-                    img_path=path,
-                    anomaly_points=selections,
-                    anomaly_selection_width=10,
-                )
-
-
-def _run_autoencoder(reader: TelemetryReader, fname: str) -> None:
-    for group_name, group in signal_groups.SIGNALS_GROUPS.items():
-        print(f'Анализ автокодировщиком группы сигналов "{group_name}"...')
-
-        encoder = LSTMAutoencoder(len(group.signals))
-
-        group.signals_data = reader.get_signals(*group.signals)
-        result = encoder.analyze(group)
-
-        res = group.signals_data.copy()
-        res['err'] = result.ewma_mse
-
-        signals = list(group.signals_data.keys())
-
-        threshold = get_threshold(fname, group_name)
-        anomaly_points = find_anomaly_points(result.ewma_mse, offset=1, threshold=threshold)
-        ANOMALIES_POINTS[f'group__{group_name}'] = anomaly_points
-
-        subplots = [Subplot(
-            signals=[
-                Signal('EWMA MSE', result.ewma_mse, color=Colours.red),
-                Signal('Граница аномалии', np.array([threshold] * len(result.ewma_mse)), color=Colours.green),
-            ],
-            xlabel=Label('Индекс точки измерения'),
-            ylabel=Label(''),
-        )]
-
-        if not PRINT_ERRORS_ONLY:
-            subplots.extend([
-                Subplot(
-                    signals=[
-                        Signal(signals[i], data, color=Colours.black),
-                        Signal(f'{signals[i]}__decoded', decoded, color=Colours.green),
-                    ],
-                    xlabel=Label('Индекс точки измерения'),
-                )
-                for i, (data, decoded) in enumerate(zip(result.signals, result.decoded_signals))
-            ])
-
-        plot_telemetry(
-            *subplots,
-            img_path=f'results/{KIND}/{fname}/group__{group_name}.png',
+        run_autoencoder(
+            reader=reader,
+            models_dir=config.models_dir,
+            signal_groups=config.signals_groups,
+            thresholds=thresholds,
+            results_path=results_path,
+            anomalies_points_storage=anomalies_points,
+            full_report=True,
         )
+        print('\n' + '*' * 100 + '\n')
+
+    print('Печать выходного файла...')
+    anomalies_counter = [0] * 100_000
+
+    with open(f'{results_path}/anomalies.txt', 'w') as f:
+        f.write('Аномальные участки:\n')
+
+        for signal, points in anomalies_points.items():
+            if not points:
+                continue
+
+            for i in points:
+                anomalies_counter[i] += 1
+
+            f.write(f'- {signal}\n')
+            write_rolluped_points(roll_up_points(points), f)
+
+        for min_cnt in range(2, 5 + 1):
+            anomaly_points = roll_up_points([i for i, cnt in enumerate(anomalies_counter) if cnt > min_cnt])
+
+            f.write(f'\nАномальные участки, встречающиеся среди анализаторов более {min_cnt} раз:\n')
+            if anomaly_points:
+                write_rolluped_points(anomaly_points, f)
+            else:
+                f.write('\tотсутствуют.\n')
+    exit(0)
+
+
+class Formatter(argparse.RawTextHelpFormatter):
+
+    def __init__(self, **kwargs) -> None:
+        kwargs['width'] = 50_000
+        super().__init__(**kwargs)
 
 
 def main() -> None:
-    # path = f'/Users/anthony/Desktop/best_diploma/data/{KIND}/'
-    path = f'/home/anton/ikfs_anomaly/data/{KIND}/'
+    parser = argparse.ArgumentParser(
+        description='Программная система обнаружения аномалий в телеметрии бортового фурье-спектрометра ИКФС-2',
+        formatter_class=Formatter,
+    )
+    subparsers = parser.add_subparsers()
 
-    for file_name in os.listdir(path):
-        if not file_name.endswith('.h5'):
-            continue
+    dump_parser = subparsers.add_parser(
+        'dump-config', help='Создать конфигурационный файл с параметрами по умолчанию', formatter_class=Formatter
+    )
+    dump_parser.set_defaults(func=dump_config)  # config --dump, config --help
 
-        fname = file_name.split(".")[0]
-        if os.path.exists(f'results/{KIND}/{fname}'):
-            continue
+    train_parser = subparsers.add_parser(
+        'train', help='Выполнить обучение моделей', formatter_class=Formatter
+    )
+    train_parser.add_argument(
+        '--telemetry-dir', '-d', type=str, required=True, help='Директория с .h5 телеметрией, не содержащей аномалий',
+    )
+    train_parser.add_argument(
+        '--config', '-c', type=str, required=True, help='Путь к конфигурационному .yml файлу',
+    )
+    train_parser.set_defaults(func=train)
 
-        os.mkdir(f'results/{KIND}/{fname}')
+    analyze_parser = subparsers.add_parser(
+        'analyze', help='Выполнить анализ телеметрии', formatter_class=Formatter
+    )
+    analyze_parser.add_argument(
+        '--telemetry-file', '-f', type=str, required=True, help='Файл с телеметрией для анализа (.h5)'
+    )
+    analyze_parser.add_argument(
+        '--config', '-c', type=str, required=True, help='Путь к конфигурационному .yml файлу',
+    )
+    analyze_parser.add_argument(
+        '--full-report',
+        action='store_true', default=False, help='Анализ с полным отчётом (графики сигналов, поиск аномали и пр.)'
+    )
+    analyze_parser.set_defaults(func=analyze)
 
-        print(f'\nProcess "{file_name}"')
-        telemetry_file = f'{path}{file_name}'
+    args = parser.parse_args()
+    args.func(args)
 
-        with TelemetryReader(telemetry_file) as reader:
-            _expert_analysis(reader, fname)
-            _run_predictor(reader, fname)
-            _run_autoencoder(reader, fname)
-
-        print('Печать выходного файла...')
-        anomalies_counter = [0] * 100_000
-
-        with open(f'results/{KIND}/{fname}/anomalies.txt', 'w') as f:
-            f.write('Аномальные участки:\n')
-
-            for signal, points in ANOMALIES_POINTS.items():
-                if not points:
-                    continue
-
-                for i in points:
-                    anomalies_counter[i] += 1
-
-                f.write(f'- {signal}\n')
-                for p in _roll_up_points(points):
-                    if isinstance(p, tuple):
-                        f.write(f'\t{p[0]} - {p[1]}\n')
-                    else:
-                        f.write(f'\t{p}\n')
-
-            for min_cnt in range(2, 5 + 1):
-                anomaly_points = _roll_up_points([i for i, cnt in enumerate(anomalies_counter) if cnt > min_cnt])
-
-                f.write(f'\nАномальные участки, встречающиеся среди анализаторов более {min_cnt} раз:\n')
-                if anomaly_points:
-                    for p in anomaly_points:
-                        if isinstance(p, tuple):
-                            f.write(f'\t{p[0]} - {p[1]}\n')
-                        else:
-                            f.write(f'\t{p}\n')
-                else:
-                    f.write('отсутствуют.\n')
+    parser.print_help()
 
 
 if __name__ == '__main__':
-    # PRINT_ERRORS_ONLY = True
     main()

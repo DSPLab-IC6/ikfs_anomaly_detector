@@ -45,7 +45,10 @@ class LSTMPredictor:
     BATCH_SIZE = 100
     VALIDATION_SPLIT = 0.05
 
-    def __init__(self) -> None:
+    def __init__(self, models_dir: str = '', tensorboard_dir: str = '') -> None:
+        self._models_dir = models_dir or os.path.join(PROJECT_PATH, 'models')
+        self._tensorboard_dir = tensorboard_dir
+
         self._model = Sequential([
             LSTM(
                 input_shape=(self.LOOKBACK_SEQUENCE_LENGTH, 1),
@@ -61,19 +64,19 @@ class LSTMPredictor:
         ])
 
     def train(self, signal_name: str, normal_data: np.ndarray) -> History:
+        print(f'Обучение LSTM-предиктора для сигнала "{signal_name}"...')
+
         x_train, y_train = self._create_subsequences(self._preprocess(normal_data))
         x_train = np.reshape(x_train, (x_train.shape[0], x_train.shape[1], 1))  # samples, sample_len, features
 
         self._model.compile(optimizer='adam', loss='mse')
 
-        history = self._model.fit(
-            x_train, y_train,
-            batch_size=self.BATCH_SIZE,
-            epochs=self.EPOCHS,
-            validation_split=self.VALIDATION_SPLIT,
-            shuffle=True,
-            callbacks=[
+        callbacks = [
                 EarlyStopping('val_loss', patience=self.MIN_EPOCHS, min_delta=self.MIN_DELTA),
+        ]
+        if self._tensorboard_dir:
+            os.makedirs(self._tensorboard_dir, exist_ok=True)
+            callbacks.append(
                 TensorBoard(
                     log_dir=self._get_tensorboard_logs_dir(signal_name),
                     batch_size=self.BATCH_SIZE,
@@ -81,10 +84,21 @@ class LSTMPredictor:
                     write_graph=True,
                     write_grads=True,
                     write_images=True,
-                ),
-            ]
+                ))
+
+        history = self._model.fit(
+            x_train, y_train,
+            batch_size=self.BATCH_SIZE,
+            epochs=self.EPOCHS,
+            validation_split=self.VALIDATION_SPLIT,
+            shuffle=True,
+            callbacks=callbacks,
         )
-        self._model.save_weights(self._get_model_path(signal_name))
+
+        models_path = self._get_model_path(signal_name)
+        os.makedirs(os.path.dirname(models_path), exist_ok=True)
+        self._model.save_weights(models_path)
+        print(f'Модель сохранена в "{models_path}"')
 
         return history
 
@@ -124,13 +138,11 @@ class LSTMPredictor:
             show_layer_names=show_layer_names,
         )
 
-    @staticmethod
-    def _get_model_path(signal_name: str) -> str:
-        return os.path.join(PROJECT_PATH, 'intellectual', 'models', 'predictor', f'{signal_name}.h5')
+    def _get_model_path(self, signal_name: str) -> str:
+        return os.path.join(self._models_dir, 'predictor', f'{signal_name}.h5')
 
-    @staticmethod
-    def _get_tensorboard_logs_dir(signal_name: str) -> str:
-        return os.path.join(PROJECT_PATH, 'tensorboard', 'predictor', signal_name)
+    def _get_tensorboard_logs_dir(self, signal_name: str) -> str:
+        return os.path.join(self._tensorboard_dir, 'predictor', signal_name)
 
     @staticmethod
     def _preprocess(data: np.ndarray) -> np.ndarray:

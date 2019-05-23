@@ -1,0 +1,19 @@
+[run]
+branch=True
+
+[paths]
+source =
+    core
+    expert
+    intellectual
+    __main__.py
+    manual_testing.py
+    manual_training.py
+
+[report]
+omit =
+    venv/*
+    */__init__.py
+    __main__.py
+    manual_testing.py
+    manual_training.py

@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from typing import List, Optional
 
 from keras import Sequential
 from keras import optimizers
@@ -7,9 +8,16 @@ from keras.callbacks import History, EarlyStopping, TensorBoard
 from keras.layers import LSTM, Dense, RepeatVector, TimeDistributed, np
 from keras.utils import plot_model
 
-from core.utils import PROJECT_PATH, fill_zeros_with_previous
-from intellectual.signal_groups import SignalsGroup
+from core.custom_types import Signals
+from core.utils import fill_zeros_with_previous, PROJECT_PATH
 from intellectual.utils import z_normalization, squared_error, ewma
+
+
+@dataclass
+class SignalsGroup:
+    name: str
+    signals: List[str]
+    signals_data: Optional[Signals] = None
 
 
 @dataclass
@@ -30,8 +38,10 @@ class LSTMAutoencoder:
     EWMA_WINDOW_SIZE = 120
     EWMA_ALPHA = 1 - np.exp(-np.log(2) / EWMA_WINDOW_SIZE)
 
-    def __init__(self, signals_count: int) -> None:
+    def __init__(self, signals_count: int, models_dir: str = '', tensorboard_dir: str = '') -> None:
         self._signals_count = signals_count
+        self._models_dir = models_dir or os.path.join(PROJECT_PATH, 'models')
+        self._tensorboard_dir = tensorboard_dir
 
         self._model = Sequential([
             LSTM(units=64, activation='relu', input_shape=(signals_count, 1)),
@@ -44,6 +54,9 @@ class LSTMAutoencoder:
         if len(signals_group.signals_data) != self._signals_count:
             raise ValueError(f'Модель может обработать строго {self._signals_count} сигналов')
 
+        print(f'Обучение LSTM-автокодировщика для группы сигналов '
+              f'"{signals_group.name}" {signals_group.signals}...')
+
         x_train = np.column_stack([
             self._preprocess(signal)
             for signal in signals_group.signals_data.values()
@@ -53,14 +66,12 @@ class LSTMAutoencoder:
         optimizer = optimizers.Adam(clipnorm=clipnorm)
         self._model.compile(optimizer=optimizer, loss='mse')
 
-        history = self._model.fit(
-            x_train, x_train,
-            batch_size=self.BATCH_SIZE,
-            epochs=self.EPOCHS,
-            validation_split=self.VALIDATION_SPLIT,
-            shuffle=True,
-            callbacks=[
-                EarlyStopping('val_loss', patience=self.MIN_EPOCHS, min_delta=0.05),
+        callbacks = [
+            EarlyStopping('val_loss', patience=self.MIN_EPOCHS, min_delta=0.05),
+        ]
+        if self._tensorboard_dir:
+            os.makedirs(os.path.dirname(self._tensorboard_dir), exist_ok=True)
+            callbacks.append(
                 TensorBoard(
                     log_dir=self._get_tensorboard_logs_dir(signals_group.name),
                     batch_size=self.BATCH_SIZE,
@@ -68,10 +79,21 @@ class LSTMAutoencoder:
                     write_graph=True,
                     write_grads=True,
                     write_images=True,
-                ),
-            ]
+                ))
+
+        history = self._model.fit(
+            x_train, x_train,
+            batch_size=self.BATCH_SIZE,
+            epochs=self.EPOCHS,
+            validation_split=self.VALIDATION_SPLIT,
+            shuffle=True,
+            callbacks=callbacks,
         )
-        self._model.save_weights(self._get_model_path(signals_group.name))
+
+        models_path = self._get_model_path(signals_group.name)
+        os.makedirs(os.path.dirname(models_path), exist_ok=True)
+        self._model.save_weights(models_path)
+        print(f'Модель сохранена в "{models_path}"')
 
         return history
 
@@ -119,10 +141,8 @@ class LSTMAutoencoder:
     def _preprocess(data: np.ndarray) -> np.ndarray:
         return z_normalization(fill_zeros_with_previous(data))
 
-    @staticmethod
-    def _get_model_path(group_name: str) -> str:
-        return os.path.join(PROJECT_PATH, 'intellectual', 'models', 'autoencoder', f'{group_name}.h5')
+    def _get_model_path(self, group_name: str) -> str:
+        return os.path.join(self._models_dir, 'autoencoder', f'{group_name}.h5')
 
-    @staticmethod
-    def _get_tensorboard_logs_dir(group_name: str) -> str:
-        return os.path.join(PROJECT_PATH, 'tensorboard', 'autoencoder', group_name)
+    def _get_tensorboard_logs_dir(self, group_name: str) -> str:
+        return os.path.join(self._tensorboard_dir, 'autoencoder', group_name)

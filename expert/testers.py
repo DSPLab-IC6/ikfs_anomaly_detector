@@ -46,7 +46,7 @@ class BaseTester:
             self.name = self.__class__.__name__
 
     def apply_rules(self, signals: Signals) -> TesterResult:
-        print(f'{self.name} - применяем правила...')
+        print(f'\t * {self.name} - применяем правила...')
 
         error_rate = {}
         details = {}

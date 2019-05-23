@@ -11,5 +11,6 @@ tensorboard/
 venv/
 
 .pytest*
-.coverage*
+.coverage
 coverage.html
+*.yml

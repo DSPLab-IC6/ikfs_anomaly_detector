@@ -1,6 +1,6 @@
 import collections
 import os
-from typing import Iterable
+from typing import Iterable, TextIO
 
 import numpy as np
 
@@ -37,3 +37,34 @@ def fill_zeros_with_previous(data: np.ndarray) -> np.ndarray:
         if x == 0:
             result[i] = result[i - 1]
     return result
+
+
+def roll_up_points(data: list) -> list:
+    result = []
+
+    i = 0
+    while i < len(data):
+        k = i
+        start = data[k]
+        end = None
+        while (k + 1 < len(data)) and (data[k + 1] - data[k] == 1):
+            end = data[k + 1]
+            k += 1
+            i += 1
+
+        if end is None:
+            result.append(start)
+        else:
+            result.append((start, end))
+
+        i += 1
+
+    return result
+
+
+def write_rolluped_points(points: list, file: TextIO) -> None:
+    for point in points:
+        if isinstance(point, tuple):
+            file.write(f'\t{point[0]} - {point[1]}\n')
+        else:
+            file.write(f'\t{point}\n')
