@@ -1,14 +1,14 @@
 import numpy as np
 from scipy import signal
 
-from core.format.telemetry import TelemetryAttrs
-from core.printer import plot_telemetry, Subplot, Signal, Label, Colours, Legend, Ticks
-from core.reader import TelemetryReader
-from core.utils import fill_zeros_with_previous
-from intellectual.autoencoder import LSTMAutoencoder
-from intellectual.predictor import LSTMPredictor
-from intellectual.signal_groups import SignalsGroup, SIGNALS_GROUPS, STR_GROUP
-from intellectual.utils import find_anomaly_points
+from ikfs_anomaly_detector.core.format.telemetry import TelemetryAttrs
+from ikfs_anomaly_detector.core.printer import plot_telemetry, Subplot, Signal, Label, Colours, Legend, Ticks
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.core.utils import fill_zeros_with_previous
+from ikfs_anomaly_detector.intellectual.autoencoder import LSTMAutoencoder
+from ikfs_anomaly_detector.intellectual.predictor import LSTMPredictor
+from ikfs_anomaly_detector.intellectual.signal_groups import SignalsGroup, SIGNALS_GROUPS, STR_GROUP
+from ikfs_anomaly_detector.intellectual.utils import find_anomaly_points
 
 GOOD_FILE = '/Users/anthony/Desktop/best_diploma/data/good/METM2_22293_22286_1VIE2-IMR_8_IKFS-2_01P8.rsm.tlm.h5'
 

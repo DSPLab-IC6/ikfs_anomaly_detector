@@ -3,10 +3,10 @@ import unittest
 import numpy as np
 from mock import MagicMock, Mock
 
-from core.custom_types import SignalDetails, Signals
-from expert.analyzer import ExpertAnalyzer
-from expert.rules import StatedTelemetry, Weight, NumericalTelemetry, RelatedTelemetry
-from expert.testers import BaseTester, TesterResult
+from ikfs_anomaly_detector.core.custom_types import SignalDetails, Signals
+from ikfs_anomaly_detector.expert.analyzer import ExpertAnalyzer
+from ikfs_anomaly_detector.expert.rules import StatedTelemetry, Weight, NumericalTelemetry, RelatedTelemetry
+from ikfs_anomaly_detector.expert.testers import BaseTester, TesterResult
 
 
 class TestStatedTelemetry(unittest.TestCase):

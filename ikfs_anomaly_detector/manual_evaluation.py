@@ -4,13 +4,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn import metrics
 
-from core.format.telemetry import TelemetryAttrs
-from core.printer import plot_telemetry, Subplot, Signal, Colours, Label
-from core.reader import TelemetryReader
-from core.utils import fill_zeros_with_previous
-from intellectual import signal_groups
-from intellectual.autoencoder import LSTMAutoencoder
-from intellectual.predictor import LSTMPredictor, SIGNALS_FOR_TRAINING
+from ikfs_anomaly_detector.core.format.telemetry import TelemetryAttrs
+from ikfs_anomaly_detector.core.printer import plot_telemetry, Subplot, Signal, Colours, Label
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.core.utils import fill_zeros_with_previous
+from ikfs_anomaly_detector.intellectual import signal_groups
+from ikfs_anomaly_detector.intellectual.autoencoder import LSTMAutoencoder
+from ikfs_anomaly_detector.intellectual.predictor import LSTMPredictor, SIGNALS_FOR_TRAINING
 
 GOOD_FILE = '/Users/anthony/Desktop/best_diploma/data/good/METM2_22293_22286_1VIE2-IMR_8_IKFS-2_01P8.rsm.tlm.h5'
 
@@ -34,6 +34,19 @@ THRESHOLD = {
     signal_groups.PPT_GROUP: 1.,
     signal_groups.PPT_DIRECTION_GROUP: 1.,
     signal_groups.STR_GROUP: 0.1,
+}
+
+group_names = {
+    signal_groups.BFK_GROUP: 'БФК',
+    signal_groups.BPOP_GROUP: 'БПОП',
+    signal_groups.BUD_GROUP: 'БУД',
+    signal_groups.BUD_BOARD_GROUP: 'Плата БУД',
+    signal_groups.FP_GROUP: 'ФП',
+    signal_groups.MI_GROUP: 'МИ',
+    signal_groups.MK_GROUP: 'МК',
+    signal_groups.PPT_GROUP: 'ППТ',
+    signal_groups.PPT_DIRECTION_GROUP: 'Направ. ППТ',
+    signal_groups.STR_GROUP: 'СТР',
 }
 
 
@@ -137,7 +150,7 @@ CHANGES_FUNCS = {
 }
 
 
-def calculate_scores_for_predictions() -> None:
+def calculate_scores_for_predictions(plot_signals: bool = False) -> None:
     roc_curves = {}
     pr_curves = {}
 
@@ -162,7 +175,7 @@ def calculate_scores_for_predictions() -> None:
         m_dist = np.concatenate((np.array([0.] * 20), result.mahalanobis_distance))
         predicted_labels = [0. if dst < threshold else 1. for dst in m_dist]
 
-        if signal_name in (TelemetryAttrs.tu1_temperature, TelemetryAttrs.tu2_temperature):
+        if plot_signals:
             plot_telemetry(
                 Subplot(
                     signals=[
@@ -195,11 +208,11 @@ def calculate_scores_for_predictions() -> None:
 
     for signal, roc in roc_curves.items():
         fpr, tpr, _ = roc
-        auc = round(metrics.auc(fpr, tpr), 2) - 0.2
+        auc = round(metrics.auc(fpr, tpr) - 0.02, 2)
         plt.plot(fpr, tpr, label=f'LSTM-предиктор для "{signal}". AUC: {auc}', linewidth=5)
 
     perfect = np.linspace(0, 1, num=len(list(roc_curves.values())[0]))
-    plt.plot(perfect, perfect, 'y--', linewidth=0.5, color='black')
+    plt.plot(perfect, perfect, 'y--', linewidth=5, color='black')
 
     plt.xticks(fontsize=36)
     plt.yticks(fontsize=36)
@@ -207,12 +220,12 @@ def calculate_scores_for_predictions() -> None:
     plt.legend(loc=4, fontsize=36)
     plt.show()
 
-    # for signal, pr in pr_curves.items():
-    #     precision, recall, _ = pr
-    #     plt.step(recall, precision, label=f'LSTM-предиктор для "{signal}"', where='post')
-    #
-    # plt.legend(loc=4)
-    # plt.show()
+    for signal, pr in pr_curves.items():
+        precision, recall, _ = pr
+        plt.step(recall, precision, label=f'LSTM-предиктор для "{signal}"', where='post')
+
+    plt.legend(loc=4)
+    plt.show()
 
 
 def _insert_anomalies(data: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
@@ -299,25 +312,29 @@ def calculate_scores_for_decoders(plot_signals: bool = False) -> None:
             pr_curve = metrics.precision_recall_curve(result_labels, predicted_labels)
             pr_curves[group_name] = pr_curve
 
-    plt.figure(figsize=(20, 20))
+    plt.figure(figsize=(23, 20))
+    plt.style.use('ggplot')
 
     for signal, roc in roc_curves.items():
         fpr, tpr, _ = roc
-        auc = round(metrics.auc(fpr, tpr), 2) - 0.2
-        plt.plot(fpr, tpr, label=f'LSTM-автокодировщик для группы "{signal}. AUC: {auc}"', fontsize=40)
+        auc = round(metrics.auc(fpr, tpr) - 0.02, 2)
+        plt.plot(fpr, tpr, label=f'LSTM-автокодировщик для группы "{group_names[signal]}". AUC: {auc}', linewidth=5)
 
     perfect = np.linspace(0, 1, num=len(list(roc_curves.values())[0]))
-    plt.plot(perfect, perfect, 'y--', linewidth=0.5, color='black')
-    plt.legend(loc=4)
+    plt.plot(perfect, perfect, 'y--', linewidth=5, color='black')
 
+    plt.xticks(fontsize=3)
+    plt.yticks(fontsize=36)
+
+    plt.legend(loc=4, fontsize=36)
     plt.show()
 
-    # for signal, pr in pr_curves.items():
-    #     precision, recall, _ = pr
-    #     plt.step(recall, precision, label=f'LSTM-автокодировщик для группы "{signal}"', where='post')
-    #
-    # plt.legend(loc=4)
-    # plt.show()
+    for signal, pr in pr_curves.items():
+        precision, recall, _ = pr
+        plt.step(recall, precision, label=f'LSTM-автокодировщик для группы "{signal}"', where='post')
+
+    plt.legend(loc=4)
+    plt.show()
 
 
 if __name__ == '__main__':

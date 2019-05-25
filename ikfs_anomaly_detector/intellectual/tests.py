@@ -2,10 +2,17 @@ import unittest
 
 import numpy as np
 
-from intellectual.autoencoder import LSTMAutoencoder
-from intellectual.predictor import LSTMPredictor
-from intellectual.utils import z_normalization, calculate_mean, find_anomaly_points, calculate_covariance_matrix, \
-    mahalanobis_distance, squared_error, ewma
+from ikfs_anomaly_detector.intellectual.autoencoder import LSTMAutoencoder
+from ikfs_anomaly_detector.intellectual.predictor import LSTMPredictor
+from ikfs_anomaly_detector.intellectual.utils import (
+    z_normalization,
+    calculate_mean,
+    find_anomaly_points,
+    calculate_covariance_matrix,
+    mahalanobis_distance,
+    squared_error,
+    ewma,
+)
 
 
 class TestAutoencoder(unittest.TestCase):

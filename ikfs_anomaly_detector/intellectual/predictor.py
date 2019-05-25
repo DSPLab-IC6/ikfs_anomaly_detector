@@ -8,10 +8,10 @@ from keras.callbacks import History, EarlyStopping, TensorBoard
 from keras.layers import LSTM, Activation, Dense
 from keras.utils import plot_model
 
-from core.custom_types import Signals
-from core.format.telemetry import TelemetryAttrs
-from core.utils import PROJECT_PATH, fill_zeros_with_previous
-from intellectual.utils import (
+from ikfs_anomaly_detector.core.custom_types import Signals
+from ikfs_anomaly_detector.core.format.telemetry import TelemetryAttrs
+from ikfs_anomaly_detector.core.utils import PROJECT_PATH, fill_zeros_with_previous
+from ikfs_anomaly_detector.intellectual.utils import (
     calculate_covariance_matrix,
     mahalanobis_distance,
     z_normalization,

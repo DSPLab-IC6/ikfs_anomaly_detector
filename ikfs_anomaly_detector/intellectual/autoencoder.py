@@ -8,9 +8,9 @@ from keras.callbacks import History, EarlyStopping, TensorBoard
 from keras.layers import LSTM, Dense, RepeatVector, TimeDistributed, np
 from keras.utils import plot_model
 
-from core.custom_types import Signals
-from core.utils import fill_zeros_with_previous, PROJECT_PATH
-from intellectual.utils import z_normalization, squared_error, ewma
+from ikfs_anomaly_detector.core.custom_types import Signals
+from ikfs_anomaly_detector.core.utils import fill_zeros_with_previous, PROJECT_PATH
+from ikfs_anomaly_detector.intellectual.utils import z_normalization, squared_error, ewma
 
 
 @dataclass

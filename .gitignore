@@ -1,9 +1,14 @@
+.DS_Store
 *.pyc
 __pycache__/
 .idea/
-__test__.py
+*__test__.py
+*.egg-info/
+.eggs/
 
+build/
 data/
+dist/
 images/
 htmlcov*/
 results/

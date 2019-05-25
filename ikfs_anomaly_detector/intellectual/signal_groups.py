@@ -1,5 +1,5 @@
-from core.format.telemetry import Counters, TelemetryAttrs
-from intellectual.autoencoder import SignalsGroup
+from ikfs_anomaly_detector.core.format.telemetry import Counters, TelemetryAttrs
+from ikfs_anomaly_detector.intellectual.autoencoder import SignalsGroup
 
 BFK_GROUP = 'bfk'
 BPOP_GROUP = 'bpop'

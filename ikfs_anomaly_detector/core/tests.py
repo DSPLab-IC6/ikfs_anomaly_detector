@@ -3,8 +3,8 @@ import unittest
 import numpy as np
 from mock import patch, MagicMock, Mock
 
-from core.reader import TelemetryReader
-from core.utils import as_set, minmax_normalize, fill_zeros_with_previous
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.core.utils import as_set, minmax_normalize, fill_zeros_with_previous
 
 
 class TestReader(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestReader(unittest.TestCase):
     def setUp(self) -> None:
         self.reader_file_mock = MagicMock(keys=Mock(return_value=['a', 'b', 'c']))
 
-        with patch('core.reader.h5py.File') as FileMock:
+        with patch('ikfs_anomaly_detector.core.reader.h5py.File') as FileMock:
             FileMock.return_value = self.reader_file_mock
             self.reader = TelemetryReader('path')
 
@@ -62,4 +62,4 @@ class TestPrinter(unittest.TestCase):
 
     def test_import(self) -> None:
         # noinspection PyUnresolvedReferences
-        from core.printer import plot_telemetry
+        from ikfs_anomaly_detector.core.printer import plot_telemetry

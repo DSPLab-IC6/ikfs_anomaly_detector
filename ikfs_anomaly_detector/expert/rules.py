@@ -2,8 +2,8 @@ import abc
 from dataclasses import dataclass
 from typing import Union, Callable
 
-from core.custom_types import SignalDetails, Signals, PointIndex
-from core.utils import fill_zeros_with_previous
+from ikfs_anomaly_detector.core.custom_types import SignalDetails, Signals, PointIndex
+from ikfs_anomaly_detector.core.utils import fill_zeros_with_previous
 
 
 class Weight:

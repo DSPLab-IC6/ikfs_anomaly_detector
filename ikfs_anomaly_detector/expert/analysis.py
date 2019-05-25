@@ -1,8 +1,8 @@
 import numpy as np
 
-from core.printer import plot_telemetry, Subplot, Signal, Label, Colours
-from core.reader import TelemetryReader
-from expert.analyzer import ExpertAnalyzer
+from ikfs_anomaly_detector.core.printer import plot_telemetry, Subplot, Signal, Label, Colours
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.expert.analyzer import ExpertAnalyzer
 
 
 def run_expert_analyzer(reader: TelemetryReader, threshold: float, results_path: str) -> None:

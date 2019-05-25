@@ -4,15 +4,15 @@ from typing import List
 
 import yaml
 
-from core.format.telemetry import TelemetryAttrs, Counters
-from intellectual.autoencoder import SignalsGroup
+from ikfs_anomaly_detector.core.format.telemetry import TelemetryAttrs, Counters
+from ikfs_anomaly_detector.intellectual.autoencoder import SignalsGroup
 
 DEFAULT_CONFIG_PATH = os.path.join(os.getcwd(), 'default_config.yml')
 
 DEFAULT_CONFIG = {
     'models_dir': '',
     'tensorboard_dir': '',
-    'analysis_result_dir': '/tmp/ikfs_anomaly_detection/models',
+    'analysis_result_dir': '/tmp/ikfs_anomaly_detector/results',
 
     'predictor_for': [
         TelemetryAttrs.ppt_ripple,

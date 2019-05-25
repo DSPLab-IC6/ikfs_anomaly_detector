@@ -3,10 +3,10 @@ from typing import List
 
 import numpy as np
 
-from core.custom_types import Signals
-from core.reader import TelemetryReader
-from intellectual.autoencoder import LSTMAutoencoder, SignalsGroup
-from intellectual.predictor import LSTMPredictor
+from ikfs_anomaly_detector.core.custom_types import Signals
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.intellectual.autoencoder import LSTMAutoencoder, SignalsGroup
+from ikfs_anomaly_detector.intellectual.predictor import LSTMPredictor
 
 
 def join_signals_from_files(*signal_names, telemetry_dir: str) -> Signals:

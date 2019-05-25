@@ -3,11 +3,11 @@ from typing import Sequence, Dict
 
 import numpy as np
 
-from core.custom_types import Signals, SignalErrorWeight, PointDetails, PointStrIndex
-from core.format import states, channels, settings
-from core.format.telemetry import TelemetryAttrs
-from core.utils import as_set
-from expert.rules import StatedTelemetry, Weight, NumericalTelemetry, RelatedTelemetry
+from ikfs_anomaly_detector.core.custom_types import Signals, SignalErrorWeight, PointDetails, PointStrIndex
+from ikfs_anomaly_detector.core.format import states, channels, settings
+from ikfs_anomaly_detector.core.format.telemetry import TelemetryAttrs
+from ikfs_anomaly_detector.core.utils import as_set
+from ikfs_anomaly_detector.expert.rules import StatedTelemetry, Weight, NumericalTelemetry, RelatedTelemetry
 
 __all__ = (
     'TesterResult',

@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 
-from core.custom_types import AnomalyPoints
-from core.utils import as_set
+from ikfs_anomaly_detector.core.custom_types import AnomalyPoints
+from ikfs_anomaly_detector.core.utils import as_set
 
 matplotlib.rcParams['agg.path.chunksize'] = 10_000
 

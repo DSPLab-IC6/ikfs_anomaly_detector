@@ -2,13 +2,13 @@ from typing import List, Dict
 
 import numpy as np
 
-from core.format.telemetry import TelemetryAttrs
-from core.printer import Subplot, Signal, plot_telemetry, Label, Colours, Ticks
-from core.reader import TelemetryReader
-from core.utils import roll_up_points
-from intellectual.autoencoder import SignalsGroup, LSTMAutoencoder
-from intellectual.predictor import LSTMPredictor
-from intellectual.utils import find_anomaly_points
+from ikfs_anomaly_detector.core.format.telemetry import TelemetryAttrs
+from ikfs_anomaly_detector.core.printer import Subplot, Signal, plot_telemetry, Label, Colours, Ticks
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.core.utils import roll_up_points
+from ikfs_anomaly_detector.intellectual.autoencoder import SignalsGroup, LSTMAutoencoder
+from ikfs_anomaly_detector.intellectual.predictor import LSTMPredictor
+from ikfs_anomaly_detector.intellectual.utils import find_anomaly_points
 
 
 def run_predictor(

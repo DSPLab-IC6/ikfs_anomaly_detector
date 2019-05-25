@@ -1,5 +1,5 @@
 import gettext
-from core.translation import translate
+from ikfs_anomaly_detector.core.translation import translate
 
 gettext.gettext = translate
 
@@ -10,11 +10,12 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import logging
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
 
-from core.config import dump_default_config, load_config
-from core.reader import TelemetryReader
-from core.utils import write_rolluped_points, roll_up_points
-from expert.analysis import run_expert_analyzer
-from intellectual.analysis import run_predictor, run_autoencoder
+from ikfs_anomaly_detector.core.config import dump_default_config, load_config
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.core.utils import write_rolluped_points, roll_up_points
+from ikfs_anomaly_detector.expert.analysis import run_expert_analyzer
+from ikfs_anomaly_detector.intellectual.analysis import run_predictor, run_autoencoder
+from ikfs_anomaly_detector.intellectual.training import train_autoencoder, train_predictor
 
 
 def dump_config(args: argparse.Namespace) -> None:
@@ -24,8 +25,6 @@ def dump_config(args: argparse.Namespace) -> None:
 
 
 def train(args: argparse.Namespace) -> None:
-    from intellectual.training import train_autoencoder, train_predictor
-
     config = load_config(args.config)
     if not config.models_dir:
         raise SystemExit('Директория для сохранения моделей "models_dir" не определена')

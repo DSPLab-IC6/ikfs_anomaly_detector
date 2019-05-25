@@ -1,8 +1,8 @@
 from typing import List, Optional
 
-from expert import testers
-from core.reader import TelemetryReader
-from expert.testers import TesterResult
+from ikfs_anomaly_detector.expert import testers
+from ikfs_anomaly_detector.core.reader import TelemetryReader
+from ikfs_anomaly_detector.expert.testers import TesterResult
 
 
 class ExpertAnalyzer:

@@ -3,7 +3,7 @@ from typing import List
 import h5py
 import numpy as np
 
-from core.custom_types import Signals
+from ikfs_anomaly_detector.core.custom_types import Signals
 
 
 class TelemetryReader:
