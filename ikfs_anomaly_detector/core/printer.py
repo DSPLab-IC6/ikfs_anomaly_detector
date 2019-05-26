@@ -58,8 +58,8 @@ class Legend:
 @dataclass
 class Ticks:
     start: int = 0
-    period: int = 2500
-    font_size: int = 24
+    period: int = 5000
+    font_size: int = 14
 
 
 @dataclass

@@ -5,7 +5,7 @@ with open('README.md', 'r') as fp:
 
 setup(
     name='ikfs-anomaly-detector',
-    version='1.0.1',
+    version='1.0.2',
     description='Программная система обнаружения аномалий в телеметрии бортового фурье-спектрометра ИКФС-2',
     long_description=long_description,
     long_description_content_type='text/markdown',

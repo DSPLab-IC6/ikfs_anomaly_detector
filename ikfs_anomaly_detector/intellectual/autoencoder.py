@@ -22,7 +22,6 @@ class SignalsGroup:
 
 @dataclass
 class AutoencoderResult:
-    signal_group_name: str
     signals: np.ndarray
     decoded_signals: np.ndarray
     mse: np.ndarray  # Mean squared error
@@ -122,7 +121,6 @@ class LSTMAutoencoder:
         ewma_mse = ewma(mse, window=self.EWMA_WINDOW_SIZE, alpha=self.EWMA_ALPHA)
 
         return AutoencoderResult(
-            signal_group_name=signals_group.name,
             signals=data,
             decoded_signals=decoded_data,
             mse=mse,

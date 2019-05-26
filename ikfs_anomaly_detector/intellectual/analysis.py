@@ -56,10 +56,12 @@ def run_predictor(
             ),
         )
 
-        print(f'LSTM-предиктор: печать изображений"...')
+        img_path = f'{results_path}/predicted__{signal}.png'
+        print(f'LSTM-предиктор: печать {img_path}"...')
+
         plot_telemetry(
             *subplots,
-            img_path=f'{results_path}/predicted__{signal}.png',
+            img_path=img_path,
             anomaly_points=anomaly_points,
         )
 
@@ -135,8 +137,10 @@ def run_autoencoder(
                 for i, (data, decoded) in enumerate(zip(result.signals, result.decoded_signals))
             ])
 
-        print(f'LSTM-автокодировщик: печать изображений...')
+        img_path = f'{results_path}/group__{group.name}.png'
+        print(f'LSTM-автокодировщик: печать {img_path}...')
+
         plot_telemetry(
             *subplots,
-            img_path=f'{results_path}/group__{group.name}.png',
+            img_path=img_path,
         )
